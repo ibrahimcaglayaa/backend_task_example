@@ -1,0 +1,63 @@
+version: '3.8'
+
+services:
+    web:
+        image: nginx:latest
+        container_name: laravel_web
+        ports:
+            - "8080:80"
+        depends_on:
+            - app
+
+    app:
+        build:
+            context: .
+            dockerfile: Dockerfile
+        container_name: laravel_app
+        ports:
+            - "9000:9000"
+        command: ["php", "artisan", "serve", "--host=0.0.0.0", "--port=9000"]
+        restart: unless-stopped
+        volumes:
+            - .:/var/www/html
+        environment:
+            - DB_HOST=mysql
+            - DB_DATABASE=laravel
+            - DB_USERNAME=root
+            - DB_PASSWORD=root
+        depends_on:
+            - mysql
+
+    mysql:
+        image: mysql:latest
+        container_name: laravel_mysql
+        restart: unless-stopped
+        environment:
+            MYSQL_ROOT_PASSWORD: root
+            MYSQL_DATABASE: laravel
+            MYSQL_USER: laravel_user
+            MYSQL_PASSWORD: laravel_password
+        volumes:
+            - ./mysql:/var/lib/mysql
+
+    phpmyadmin:
+        image: phpmyadmin/phpmyadmin
+        container_name: laravel_phpmyadmin
+        ports:
+            - "8081:80"
+        environment:
+            PMA_HOST: mysql
+            MYSQL_ROOT_PASSWORD: root
+        depends_on:
+            - mysql
+
+    artisan:
+        build:
+            context: .
+            dockerfile: Dockerfile
+        container_name: laravel_artisan
+        volumes:
+            - ./laravel:/var/www/html
+        depends_on:
+            - mysql
+        command: ["php", "artisan", "migrate", "--force"]
